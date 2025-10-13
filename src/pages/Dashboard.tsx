@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Package, ShoppingCart, Archive, Users, TrendingUp, IndianRupee } from "lucide-react";
+import { Package, ShoppingCart, Archive, Users, TrendingUp, IndianRupee, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import { getTodayStats, getTotalStats } from "@/lib/storage";
+import { toast } from "sonner";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -12,6 +15,11 @@ export default function Dashboard() {
     todayBills: 0,
     totalRevenue: 0,
   });
+
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [password, setPassword] = useState("");
+  const CORRECT_PASSWORD = "KARUNACHELLA";
 
   useEffect(() => {
     const todayStats = getTodayStats();
@@ -24,7 +32,27 @@ export default function Dashboard() {
       todayBills: todayStats.billsCount,
       totalRevenue: totalStats.totalRevenue,
     });
+    
+    // Reset unlock state when component mounts (page loads)
+    setIsUnlocked(false);
   }, []);
+
+  const handleUnlockClick = () => {
+    setShowPasswordDialog(true);
+    setPassword("");
+  };
+
+  const handlePasswordSubmit = () => {
+    if (password === CORRECT_PASSWORD) {
+      setIsUnlocked(true);
+      setShowPasswordDialog(false);
+      setPassword("");
+      toast.success("Access granted!");
+    } else {
+      toast.error("Incorrect password!");
+      setPassword("");
+    }
+  };
 
   const cards = [
     {
@@ -50,10 +78,11 @@ export default function Dashboard() {
     },
     {
       title: "Today's Sales",
-      value: `₹${stats.todaySales.toFixed(2)}`,
+      value: isUnlocked ? `₹${stats.todaySales.toFixed(2)}` : "******",
       icon: TrendingUp,
-      link: "/customers",
+      link: isUnlocked ? "/customers" : undefined,
       gradient: "bg-gradient-celebration",
+      isProtected: true,
     },
   ];
 
@@ -80,39 +109,88 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {cards.map((card, index) => {
           const Icon = card.icon;
-          return (
-            <Link key={index} to={card.link}>
-              <Card className="hover:shadow-glow transition-all cursor-pointer border-2 hover:border-primary">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {card.title}
-                  </CardTitle>
-                  <div className={`p-2 rounded-lg ${card.gradient}`}>
-                    <Icon className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">{card.value}</div>
-                </CardContent>
-              </Card>
+          const isProtectedCard = card.isProtected && !isUnlocked;
+          
+          const cardContent = (
+            <Card className="hover:shadow-glow transition-all cursor-pointer border-2 hover:border-primary">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {card.title}
+                </CardTitle>
+                <div className={`p-2 rounded-lg ${card.gradient}`}>
+                  <Icon className="h-4 w-4 text-primary-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-foreground flex items-center gap-2">
+                  {card.value}
+                  {card.isProtected && !isUnlocked && <Eye className="h-5 w-5 text-muted-foreground" />}
+                </div>
+              </CardContent>
+            </Card>
+          );
+          
+          return isProtectedCard ? (
+            <div key={index} onClick={handleUnlockClick}>
+              {cardContent}
+            </div>
+          ) : (
+            <Link key={index} to={card.link!}>
+              {cardContent}
             </Link>
           );
         })}
       </div>
 
       {/* Total Revenue Card */}
-      <Card className="bg-gradient-festive text-primary-foreground shadow-glow">
+      <Card 
+        className="bg-gradient-festive text-primary-foreground shadow-glow cursor-pointer hover:scale-[1.02] transition-all" 
+        onClick={!isUnlocked ? handleUnlockClick : undefined}
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <IndianRupee className="h-6 w-6" />
             Total Revenue
+            {!isUnlocked && <Eye className="h-5 w-5 ml-auto" />}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-5xl font-bold">₹{stats.totalRevenue.toFixed(2)}</div>
+          <div className="text-5xl font-bold">
+            {isUnlocked ? `₹${stats.totalRevenue.toFixed(2)}` : "******"}
+          </div>
           <p className="text-sm text-primary-foreground/80 mt-2">All time sales revenue</p>
         </CardContent>
       </Card>
+
+      {/* Password Dialog */}
+      <AlertDialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enter Password</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please enter the password to view financial information.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Input
+              type="password"
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handlePasswordSubmit();
+                }
+              }}
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPassword("")}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePasswordSubmit}>Submit</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Quick Actions */}
       <div>
