@@ -169,19 +169,12 @@ export default function AddProduct() {
                 id="bulk-upload-input"
               />
               
-              <label htmlFor="bulk-upload-input">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="cursor-pointer border-primary/50 hover:bg-primary/10"
-                  onClick={() => fileInputRef.current?.click()}
-                  asChild
-                >
-                  <span>
-                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                    Choose Excel File
-                  </span>
-                </Button>
+              <label 
+                htmlFor="bulk-upload-input"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 h-10 px-4 py-2 cursor-pointer border border-primary/50 bg-background hover:bg-primary/10 hover:text-accent-foreground"
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Choose Excel File
               </label>
             </div>
 
